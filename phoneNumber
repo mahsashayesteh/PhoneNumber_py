@@ -1,0 +1,224 @@
+import re
+from tkinter import *
+from tkinter import messagebox, ttk
+from tkinter.ttk import Treeview
+
+import mysql.connector
+
+mydb = mysql.connector.connect(
+    host='localhost',
+    user='root',
+    password='1234',
+    database='test1'
+)
+mycusor = mydb.cursor()
+
+
+def checkPatternNumber(telNumber):
+    pattern = r'^(09)([0-9]*)$'
+    checkBeNumber = re.search(pattern, telNumber)
+    if checkBeNumber == False:
+        print("Enter Just Number")
+        return False
+    # 'elif not len(telNumber)==11:
+    #     print("please Enter eleven integer for tel number")
+    #     return False'
+    return True
+
+def DelRowNum():
+    selectRowNum = trv.selection()[0]
+    trv.delete(selectRowNum)
+
+def checkForEmptyFiled(name, family):
+    if name == '' and family == '':
+        messagebox.showwarning('warning',
+                               "both name and family can not be empty at least one of them should "
+                               "completed")
+        return False
+    # elif tel == '':
+    #     messagebox.showwarning('warning', "tel field can not be empty")
+    #     return False
+    return True
+
+
+def savePhoneNumber(i):
+    sqlTelNumber = "INSERT INTO test1.moredata(numberphone,phonebook_id ) VALUES (%s, %s)"
+    phoNumberList = readNumberTreeView()
+    for item in phoNumberList:
+        valNumber = (item, i)
+
+        # sqlMoreData = "INSERT INTO moredata(te)"
+        mycusor.execute(sqlTelNumber, valNumber)
+        mydb.commit()
+        yield item
+
+
+
+idNum = 0
+t = 1
+
+
+def saveData():
+    global getTel2
+    global idNum
+    global t
+    # idNum = 0
+    # global mycusor
+    name = getName.get()
+    family = getFamily.get()
+    tel = getTel.get()
+
+
+    if checkForEmptyFiled(name, family):
+        email = getEmail.get()
+        address = getAddress.get("1.0", END)
+        sqlPhoneNumber = "INSERT INTO test1.phonebook(phonebook_id, nam, family, email, address) " \
+                         "VALUES (%s, %s, %s, %s, %s)"
+        val = (idNum, name, family, email, address)
+
+        print(idNum)
+        savePhoneNumber(idNum)
+        mycusor.execute(sqlPhoneNumber, val)
+        mydb.commit()
+
+        ttt = list(savePhoneNumber(idNum))
+
+        n = 0
+        while n <= len(ttt)-2:
+
+            for number in ttt:
+              trvListPhNUmber.insert("", 'end', iid=t,
+                               values=(t, name, family, email, number, address))
+              n += 1
+              t += 1
+        getName.delete(0, END)
+        getFamily.delete(0, END)
+        getEmail.delete(0, END)
+        getAddress.delete('1.0', END)
+        for num in trv.get_children():
+            trv.delete(num)
+    idNum += 1
+
+    # telHome = gethomeTel.get()
+    # telWork = getWorkTel.get()
+
+
+def readNumberTreeView():
+    j = []
+    for data in trv.get_children():
+        j.append(trv.item(data)["values"][1])
+    return j
+
+
+global p
+p = 1
+
+
+def takeMorePhoneNumber():
+    tel = getTel.get()
+    # btnDelRow = btnDelTelRow.pack(anchor='center')
+    global p
+
+    trv.insert('', 'end', iid=p, values=('tel' + str(p), tel))
+    getTel.delete("0", END)
+    p += 1
+
+def deleteRow():
+    selected = trvListPhNUmber.selection()
+    if selected:
+        x = selected[0]
+        trvListPhNUmber.delete(x)
+
+        gueryDelete = "DELETE FROM test1.moredata WHERE ID = %s"
+        mycusor.execute(gueryDelete, (x,))
+        mydb.commit()
+
+
+
+
+
+# def insertDatatoTable():
+#
+#    mycusor = mydb.cursor()
+#    mycusor.execute("SELECT nam, family, email, address FROM test1.phonebook ")
+#    fetchDataofPhoneBook = mycusor.fetchall()
+
+
+# ------------------------------------------------------------------------------------
+self = Tk()
+self.title('Phone Book')
+self.geometry('590x700')
+self.resizable = False
+
+trv = ttk.Treeview(self, selectmode='extended')
+trv.place(x=330, y=110, width=170, height=120)
+trv['columns'] = ('1', '2')
+trv['show'] = 'headings'
+trv.column('1', width=2, anchor='c')
+trv.column('2', width=70, anchor='c')
+trv.heading('1', text='Names')
+trv.heading('2', text='Phone Numbers')
+
+
+btnDelRowNum = Button(self, text="Delete phone Number", font=("Romana", 9),width=18, command=DelRowNum, bg='Gray')
+btnDelRowNum.place(x=330, y=79 )
+
+lblName = Label(self, text='Name:', width=5, height=0, font=('arial', 11, 'bold')).place(x=30, y=35)
+getName = Entry(self,width=25, font= ('Arial', 10))
+getName.place(x=100, y=35, height=30)
+
+lblFamily = Label(self, text='Family:', width=5, height=1, font=('arial', 11, 'bold')).place(x=30,
+                                                                                             y=100)
+getFamily = Entry(self, width=25, font= ('Arial', 10) )
+getFamily.place(x=100, y=100, height=30)
+
+lblTel = Label(self, text='Tel:', width=5, height=1, font=('arial', 11, 'bold'))
+lblTel.place(x=280, y=30)
+
+getTel = Entry(self, width=25, font= ('Arial', 10))
+getTel.place(x=330, y=30, height=30)
+
+btnDelTelRow = Button(self, text='-')
+
+btnMoreTel = Button(self, text='+', command=takeMorePhoneNumber)
+btnMoreTel.place(x=520, y=30)
+
+takeMoreTel = Label(self, text='Phone Number', width=5, height=1, font=('Arial', 11, 'bold'))
+getMoreTel = Entry(self, width=25)
+
+lblEmail = Label(self, text='Email:', width=5, height=0, font=('arial', 11, 'bold')).place(x=30,
+                                                                                          y=175)
+getEmail = Entry(self, width=25 , font= ('Arial', 10))
+getEmail.place(x=100, y=175, height=30)
+
+lblAddress = Label(self, text='Address:', width=6, height=1, font=('arial', 11, 'bold')).place(x=30,
+                                                                                              y=240)
+getAddress = Text(self, width=50, height=4, pady=1, font= ('Arial', 10) )
+getAddress.place(x=100, y=245)
+
+saveDateBtn = Button(self, text="Save", command=saveData, font=("Arial", 12) , width=9, bg='blue').place(x=480, y=280)
+readName = getName.get()
+
+# made table for show phone number saved
+trvListPhNUmber = ttk.Treeview(self, selectmode='extended')
+trvListPhNUmber.place(x=10, y=350, width=570, bordermode='inside')
+
+trvListPhNUmber['columns'] = ('row', 'name', 'family', 'email', 'phonenumber', 'adress')
+trvListPhNUmber['show'] = 'headings'
+trvListPhNUmber.column('row', width=0, anchor='c')
+trvListPhNUmber.column('name', width=27, anchor='c')
+trvListPhNUmber.column('family', width=27, anchor='c')
+trvListPhNUmber.column('email', width=40, anchor='c')
+trvListPhNUmber.column('phonenumber', width=40, anchor='c')
+trvListPhNUmber.column('adress', width=150, anchor='c')
+trvListPhNUmber.heading('row', text='row')
+trvListPhNUmber.heading('name', text='Name')
+trvListPhNUmber.heading('family', text='Family')
+trvListPhNUmber.heading('email', text='Email')
+trvListPhNUmber.heading('phonenumber', text='Phone Number')
+trvListPhNUmber.heading('adress', text='Address')
+
+btnDelItem = Button(self, text="Delete Row", command=deleteRow, font=('Arial', 10))
+btnDelItem.place(x= 10, y= 580)
+# ---------------------------------------------------------------
+self.mainloop()
